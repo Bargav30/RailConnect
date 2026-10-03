@@ -1,0 +1,154 @@
+/* =========================================
+   RailConnect — Global UI Foundation
+   ========================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    min-width: 320px;
+    background: #f7f8fa;
+    color: #172033;
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+button {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled) {
+    transition:
+        transform 160ms ease,
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
+        box-shadow 160ms ease,
+        opacity 160ms ease;
+}
+
+button:not(:disabled):active {
+    transform: translateY(1px);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid rgba(20, 120, 189, 0.35);
+    outline-offset: 2px;
+}
+
+/* =========================================
+   Global page entrance
+   ========================================= */
+
+#root {
+    min-height: 100vh;
+}
+
+#root > * {
+    animation: railPageEnter 360ms ease both;
+}
+
+@keyframes railPageEnter {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =========================================
+   Common interaction polish
+   ========================================= */
+
+.rail-card,
+.dashboard-card,
+.search-result-card,
+.booking-card,
+.notification-card,
+.status-card,
+.admin-train-card {
+    transition:
+        transform 180ms ease,
+        border-color 180ms ease,
+        box-shadow 180ms ease;
+}
+
+.rail-card:hover,
+.dashboard-card:hover,
+.search-result-card:hover,
+.booking-card:hover,
+.notification-card:hover,
+.status-card:hover,
+.admin-train-card:hover {
+    transform: translateY(-2px);
+}
+
+/* =========================================
+   Common clickable elements
+   ========================================= */
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+a,
+button {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* =========================================
+   Smooth image/icon rendering
+   ========================================= */
+
+svg {
+    transition:
+        transform 160ms ease,
+        opacity 160ms ease;
+}
+
+/* =========================================
+   Reduced motion accessibility
+   ========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
