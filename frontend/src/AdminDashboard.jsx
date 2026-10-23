@@ -2,7 +2,15 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-const API = import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com";
+const API = (import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com").replace(/\/$/, "");
+const TRAINS_API = `${API}/api/trains`;
+
+function getTrainArray(data) {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.trains)) return data.trains;
+    if (Array.isArray(data?.data)) return data.data;
+    return [];
+}
 
 const emptyTrain = {
     trainNumber: "",
@@ -29,8 +37,12 @@ function AdminDashboard() {
 
     const fetchTrains = async () => {
         try {
-            const response = await axios.get(API);
-            setTrains(Array.isArray(response.data) ? response.data : []);
+            const response = await axios.get(TRAINS_API);
+            const trainList = getTrainArray(response.data);
+            setTrains(trainList);
+            if (trainList.length === 0) {
+                console.warn("Train API did not return a non-empty train array:", response.data);
+            }
         } catch (error) {
             console.error(error);
             setMessage("Failed to load trains. Check your backend.");
@@ -98,7 +110,7 @@ function AdminDashboard() {
         try {
             setSaving(true);
 
-            const response = await axios.post(API, {
+            const response = await axios.post(TRAINS_API, {
                 ...newTrain,
                 trainNumber: newTrain.trainNumber.trim(),
                 trainName: newTrain.trainName.trim(),
@@ -110,10 +122,15 @@ function AdminDashboard() {
                 availableSeats: Number(newTrain.availableSeats),
             });
 
-            setTrains((previous) => [
-                response.data?.train,
-                ...(Array.isArray(previous) ? previous : []),
-            ].filter(Boolean));
+            const createdTrain = response.data?.train || response.data?.data || response.data;
+            if (createdTrain && typeof createdTrain === "object" && createdTrain._id) {
+                setTrains((previous) => [
+                    createdTrain,
+                    ...(Array.isArray(previous) ? previous : []),
+                ]);
+            } else {
+                await fetchTrains();
+            }
 
             setNewTrain(emptyTrain);
             setShowAddForm(false);
@@ -134,7 +151,7 @@ function AdminDashboard() {
 
     const updateStatus = async (trainId, status) => {
         try {
-            await axios.patch(`${API}/${trainId}/status`, { status });
+            await axios.patch(`${TRAINS_API}/${trainId}/status`, { status });
 
             setMessage("Train status updated successfully!");
             setMessageType("success");
