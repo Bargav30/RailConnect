@@ -30,7 +30,7 @@ function AdminDashboard() {
     const fetchTrains = async () => {
         try {
             const response = await axios.get(API);
-            setTrains(response.data);
+            setTrains(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error(error);
             setMessage("Failed to load trains. Check your backend.");
@@ -111,9 +111,9 @@ function AdminDashboard() {
             });
 
             setTrains((previous) => [
-                response.data.train,
-                ...previous,
-            ]);
+                response.data?.train,
+                ...(Array.isArray(previous) ? previous : []),
+            ].filter(Boolean));
 
             setNewTrain(emptyTrain);
             setShowAddForm(false);
@@ -905,7 +905,7 @@ function AdminDashboard() {
                         </p>
                     ) : (
                         <div className="admin-train-list">
-                            {trains.map((train) => (
+                            {(Array.isArray(trains) ? trains : []).map((train) => (
                                 <article className="admin-train-card" key={train._id}>
                                     <div className="admin-train-top">
                                         <div>
