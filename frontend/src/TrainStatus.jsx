@@ -7,26 +7,90 @@ function TrainStatus() {
     const [trainNumber, setTrainNumber] = useState("");
     const [train, setTrain] = useState(null);
     const [message, setMessage] = useState("");
+    const [allTrains, setAllTrains] = useState([]);
+    const [suggestions, setSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
 
     const navigate = useNavigate();
 
+    useEffect(() => {
+        const fetchTrains = async () => {
+            try {
+                const response = await axios.get(
+                    `${import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com"}/api/trains`
+                );
+                setAllTrains(Array.isArray(response.data) ? response.data : []);
+            } catch (error) {
+                console.error("Failed to load train suggestions:", error);
+            }
+        };
+
+        fetchTrains();
+    }, []);
+
+    const handleTrainInput = (value) => {
+        setTrainNumber(value);
+        setTrain(null);
+        setMessage("");
+
+        const query = value.trim().toLowerCase();
+        if (!query) {
+            setSuggestions(allTrains.slice(0, 8));
+            setShowSuggestions(true);
+            return;
+        }
+
+        const matches = allTrains.filter((item) =>
+            String(item.trainName || "").toLowerCase().includes(query) ||
+            String(item.trainNumber || "").toLowerCase().includes(query) ||
+            String(item.source || "").toLowerCase().includes(query) ||
+            String(item.destination || "").toLowerCase().includes(query)
+        );
+        setSuggestions(matches.slice(0, 8));
+        setShowSuggestions(true);
+    };
+
+    const chooseTrain = (item) => {
+        setTrainNumber(String(item.trainNumber));
+        setSuggestions([]);
+        setShowSuggestions(false);
+        setMessage("");
+    };
+
     const searchTrain = async () => {
+        const query = trainNumber.trim().toLowerCase();
+        if (!query) {
+            setMessage("Type a train name or number, then choose your train.");
+            setShowSuggestions(true);
+            setSuggestions(allTrains.slice(0, 8));
+            return;
+        }
+
         try {
             const response = await axios.get(
-                "http://localhost:5000/api/trains"
+                `${import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com"}/api/trains`
             );
+            const currentTrains = Array.isArray(response.data) ? response.data : [];
+            setAllTrains(currentTrains);
 
-            const foundTrain = response.data.find(
-                (item) => item.trainNumber === trainNumber.trim()
+            const foundTrain = currentTrains.find((item) =>
+                String(item.trainNumber || "").toLowerCase() === query ||
+                String(item.trainName || "").toLowerCase() === query
+            ) || currentTrains.find((item) =>
+                String(item.trainName || "").toLowerCase().includes(query) ||
+                String(item.trainNumber || "").toLowerCase().includes(query)
             );
 
             if (!foundTrain) {
                 setTrain(null);
-                setMessage("Train not found.");
+                setMessage("No matching train found. Choose a train from the suggestions.");
                 return;
             }
 
+            setTrainNumber(String(foundTrain.trainNumber));
             setTrain(foundTrain);
+            setShowSuggestions(false);
+            setSuggestions([]);
             setMessage("");
         } catch (error) {
             console.error(error);
@@ -35,7 +99,7 @@ function TrainStatus() {
     };
 
     useEffect(() => {
-        const socket = io("http://localhost:5000");
+        const socket = io(import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com");
 
         socket.on("connect", () => {
             console.log("Connected to RailConnect live updates.");
@@ -257,6 +321,61 @@ function TrainStatus() {
                         display: grid;
                         grid-template-columns: minmax(0, 1fr) auto;
                         gap: 10px;
+                        align-items: start;
+                    }
+
+                    .status-autocomplete-wrap {
+                        position: relative;
+                        min-width: 0;
+                    }
+
+                    .status-suggestions {
+                        position: absolute;
+                        top: calc(100% + 6px);
+                        left: 0;
+                        right: 0;
+                        z-index: 50;
+                        max-height: 300px;
+                        overflow-y: auto;
+                        background: #ffffff;
+                        border: 1px solid #dfe5ec;
+                        border-radius: 10px;
+                        box-shadow: 0 12px 28px rgba(16, 24, 40, 0.14);
+                    }
+
+                    .status-suggestion {
+                        display: block;
+                        width: 100%;
+                        padding: 12px 14px;
+                        border: 0;
+                        border-bottom: 1px solid #eef1f5;
+                        background: #ffffff;
+                        color: #172033;
+                        text-align: left;
+                        cursor: pointer;
+                    }
+
+                    .status-suggestion:last-child {
+                        border-bottom: 0;
+                    }
+
+                    .status-suggestion:hover,
+                    .status-suggestion:focus {
+                        background: #f0f8ff;
+                        outline: none;
+                    }
+
+                    .status-suggestion-name {
+                        display: block;
+                        font-size: 13px;
+                        font-weight: 700;
+                    }
+
+                    .status-suggestion-details {
+                        display: block;
+                        margin-top: 4px;
+                        color: #667085;
+                        font-size: 12px;
                     }
 
                     .status-input {
@@ -701,19 +820,67 @@ function TrainStatus() {
 
                 <section className="status-search-panel">
                     <span className="status-search-label">
-                        Search by train number
+                        Search by train name or number
                     </span>
 
                     <div className="status-search-form">
-                        <input
-                            className="status-input"
-                            type="text"
-                            placeholder="Enter train number"
-                            value={trainNumber}
-                            onChange={(e) =>
-                                setTrainNumber(e.target.value)
-                            }
-                        />
+                        <div className="status-autocomplete-wrap">
+                            <input
+                                className="status-input"
+                                type="text"
+                                placeholder="Type Kovai Express or 12675..."
+                                value={trainNumber}
+                                autoComplete="off"
+                                onFocus={() => {
+                                    const query = trainNumber.trim().toLowerCase();
+                                    const matches = query
+                                        ? allTrains.filter((item) =>
+                                            String(item.trainName || "").toLowerCase().includes(query) ||
+                                            String(item.trainNumber || "").toLowerCase().includes(query) ||
+                                            String(item.source || "").toLowerCase().includes(query) ||
+                                            String(item.destination || "").toLowerCase().includes(query)
+                                        )
+                                        : allTrains;
+                                    setSuggestions(matches.slice(0, 8));
+                                    setShowSuggestions(true);
+                                }}
+                                onChange={(e) => handleTrainInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        if (showSuggestions && suggestions.length > 0) {
+                                            chooseTrain(suggestions[0]);
+                                        } else {
+                                            searchTrain();
+                                        }
+                                    }
+                                    if (e.key === "Escape") {
+                                        setShowSuggestions(false);
+                                    }
+                                }}
+                            />
+
+                            {showSuggestions && suggestions.length > 0 && (
+                                <div className="status-suggestions">
+                                    {suggestions.map((item) => (
+                                        <button
+                                            type="button"
+                                            className="status-suggestion"
+                                            key={item._id || item.trainNumber}
+                                            onMouseDown={(e) => e.preventDefault()}
+                                            onClick={() => chooseTrain(item)}
+                                        >
+                                            <span className="status-suggestion-name">
+                                                🚆 {item.trainName} · {item.trainNumber}
+                                            </span>
+                                            <span className="status-suggestion-details">
+                                                {item.source} → {item.destination}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
 
                         <button
                             className="status-search-button"

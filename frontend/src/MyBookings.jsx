@@ -21,7 +21,7 @@ function MyBookings() {
 
         try {
             const response = await axios.get(
-                `http://localhost:5000/api/bookings/user/${user.id}`
+                `${import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com"}/api/bookings/user/${user.id}`
             );
 
             setBookings(response.data);
@@ -42,7 +42,7 @@ function MyBookings() {
             return;
         }
 
-        const socket = io("http://localhost:5000");
+        const socket = io(import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com");
 
         socket.on("bookingUpdated", (data) => {
             if (!data?.userId) {
@@ -70,7 +70,7 @@ function MyBookings() {
 
         try {
             await axios.delete(
-                `http://localhost:5000/api/bookings/${cancelTarget._id}`
+                `${import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com"}/api/bookings/${cancelTarget._id}`
             );
 
             setBookings((currentBookings) =>

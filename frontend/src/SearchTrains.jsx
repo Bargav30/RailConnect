@@ -11,11 +11,75 @@ function SearchTrains() {
     const [trains, setTrains] = useState([]);
     const [message, setMessage] = useState("");
 
+    // Station autocomplete uses the trains currently stored in MongoDB.
+    const [allTrains, setAllTrains] = useState([]);
+    const [sourceSuggestions, setSourceSuggestions] = useState([]);
+    const [destinationSuggestions, setDestinationSuggestions] = useState([]);
+    const [activeSuggestion, setActiveSuggestion] = useState("");
+    const [sourceActiveIndex, setSourceActiveIndex] = useState(-1);
+    const [destinationActiveIndex, setDestinationActiveIndex] = useState(-1);
+
+    const stationNames = [
+        ...new Set(
+            allTrains
+                .flatMap((train) => [train.source, train.destination])
+                .filter((station) => typeof station === "string" && station.trim())
+                .map((station) => station.trim())
+        ),
+    ].sort((a, b) => a.localeCompare(b));
+
+    const getStationSuggestions = (value) => {
+        const query = value.trim().toLowerCase();
+        if (!query) return [];
+
+        return stationNames
+            .filter((station) => station.toLowerCase().includes(query))
+            .slice(0, 7);
+    };
+
+    const chooseSourceStation = (station) => {
+        setSource(station);
+        setSourceSuggestions([]);
+        setSourceActiveIndex(-1);
+        setActiveSuggestion("");
+    };
+
+    const chooseDestinationStation = (station) => {
+        setDestination(station);
+        setDestinationSuggestions([]);
+        setDestinationActiveIndex(-1);
+        setActiveSuggestion("");
+    };
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const fetchStations = async () => {
+            try {
+                const response = await axios.get(`${import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com"}/api/trains`);
+                if (isMounted && Array.isArray(response.data)) {
+                    setAllTrains(response.data);
+                }
+            } catch (error) {
+                console.error("Could not load station suggestions:", error);
+            }
+        };
+
+        fetchStations();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
     const [selectedTrain, setSelectedTrain] = useState(null);
     const [journeyDate, setJourneyDate] = useState("");
     const [bookingConfirmation, setBookingConfirmation] = useState(null);
 
     const searchTrains = async () => {
+        setSourceSuggestions([]);
+        setDestinationSuggestions([]);
+        setActiveSuggestion("");
+
         if (!source.trim() || !destination.trim()) {
             setMessage("Please enter both source and destination.");
             return;
@@ -23,7 +87,7 @@ function SearchTrains() {
 
         try {
             const response = await axios.get(
-                "http://localhost:5000/api/trains/search",
+                `${import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com"}/api/trains/search`,
                 {
                     params: {
                         source: source.trim(),
@@ -88,7 +152,7 @@ function SearchTrains() {
 
         try {
             const response = await axios.post(
-                "http://localhost:5000/api/bookings",
+                `${import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com"}/api/bookings`,
                 {
                     userId: user.id,
                     trainId: selectedTrain._id,
@@ -127,7 +191,7 @@ function SearchTrains() {
     };
 
     useEffect(() => {
-        const socket = io("http://localhost:5000");
+        const socket = io(import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com");
 
         socket.on("trainStatusUpdated", (data) => {
             if (!data) {
@@ -511,6 +575,54 @@ function SearchTrains() {
                         display: flex;
                         flex-direction: column;
                         gap: 6px;
+                        min-width: 0;
+                    }
+
+                    .station-input-wrap {
+                        position: relative;
+                        width: 100%;
+                    }
+
+                    .station-suggestions {
+                        position: absolute;
+                        top: calc(100% + 5px);
+                        left: 0;
+                        right: 0;
+                        z-index: 1000;
+                        max-height: 230px;
+                        overflow-y: auto;
+                        padding: 5px;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 9px;
+                        background: #ffffff;
+                        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
+                    }
+
+                    .station-suggestion {
+                        display: flex;
+                        align-items: center;
+                        width: 100%;
+                        min-height: 38px;
+                        padding: 9px 11px;
+                        border: none;
+                        border-radius: 6px;
+                        background: transparent;
+                        color: #172033;
+                        text-align: left;
+                        font-size: 13px;
+                        cursor: pointer;
+                    }
+
+                    .station-suggestion:hover,
+                    .station-suggestion.active {
+                        background: #eaf5fc;
+                        color: #1478bd;
+                    }
+
+                    .station-suggestion-empty {
+                        padding: 10px 11px;
+                        color: #667085;
+                        font-size: 12px;
                     }
 
                     .search-field label {
@@ -1310,45 +1422,137 @@ function SearchTrains() {
 
                         <div className="search-form">
                             <div className="search-field">
-                                <label>From</label>
+                                <label htmlFor="source-station">From</label>
 
-                                <input
-                                    type="text"
-                                    placeholder="Enter source station"
-                                    value={source}
-                                    onChange={(e) =>
-                                        setSource(e.target.value)
-                                    }
-                                    onKeyDown={(e) => {
-                                        if (
-                                            e.key === "Enter"
-                                        ) {
-                                            searchTrains();
-                                        }
-                                    }}
-                                />
+                                <div className="station-input-wrap">
+                                    <input
+                                        id="source-station"
+                                        type="text"
+                                        placeholder="Enter source station"
+                                        value={source}
+                                        autoComplete="off"
+                                        role="combobox"
+                                        aria-expanded={activeSuggestion === "source" && sourceSuggestions.length > 0}
+                                        aria-controls="source-station-suggestions"
+                                        onFocus={() => {
+                                            setActiveSuggestion("source");
+                                            setSourceSuggestions(getStationSuggestions(source));
+                                        }}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setSource(value);
+                                            setSourceSuggestions(getStationSuggestions(value));
+                                            setSourceActiveIndex(-1);
+                                            setActiveSuggestion("source");
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "ArrowDown" && sourceSuggestions.length) {
+                                                e.preventDefault();
+                                                setSourceActiveIndex((index) => (index + 1) % sourceSuggestions.length);
+                                            } else if (e.key === "ArrowUp" && sourceSuggestions.length) {
+                                                e.preventDefault();
+                                                setSourceActiveIndex((index) => index <= 0 ? sourceSuggestions.length - 1 : index - 1);
+                                            } else if (e.key === "Enter") {
+                                                if (activeSuggestion === "source" && sourceActiveIndex >= 0 && sourceSuggestions[sourceActiveIndex]) {
+                                                    e.preventDefault();
+                                                    chooseSourceStation(sourceSuggestions[sourceActiveIndex]);
+                                                } else {
+                                                    setSourceSuggestions([]);
+                                                    setActiveSuggestion("");
+                                                    searchTrains();
+                                                }
+                                            } else if (e.key === "Escape") {
+                                                setSourceSuggestions([]);
+                                                setActiveSuggestion("");
+                                            }
+                                        }}
+                                    />
+
+                                    {activeSuggestion === "source" && sourceSuggestions.length > 0 && (
+                                        <div className="station-suggestions" id="source-station-suggestions" role="listbox">
+                                            {sourceSuggestions.map((station, index) => (
+                                                <button
+                                                    type="button"
+                                                    className={`station-suggestion ${index === sourceActiveIndex ? "active" : ""}`}
+                                                    key={station}
+                                                    role="option"
+                                                    aria-selected={index === sourceActiveIndex}
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    onClick={() => chooseSourceStation(station)}
+                                                >
+                                                    <span aria-hidden="true" style={{ marginRight: 9 }}>📍</span>{station}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="search-field">
-                                <label>To</label>
+                                <label htmlFor="destination-station">To</label>
 
-                                <input
-                                    type="text"
-                                    placeholder="Enter destination station"
-                                    value={destination}
-                                    onChange={(e) =>
-                                        setDestination(
-                                            e.target.value
-                                        )
-                                    }
-                                    onKeyDown={(e) => {
-                                        if (
-                                            e.key === "Enter"
-                                        ) {
-                                            searchTrains();
-                                        }
-                                    }}
-                                />
+                                <div className="station-input-wrap">
+                                    <input
+                                        id="destination-station"
+                                        type="text"
+                                        placeholder="Enter destination station"
+                                        value={destination}
+                                        autoComplete="off"
+                                        role="combobox"
+                                        aria-expanded={activeSuggestion === "destination" && destinationSuggestions.length > 0}
+                                        aria-controls="destination-station-suggestions"
+                                        onFocus={() => {
+                                            setActiveSuggestion("destination");
+                                            setDestinationSuggestions(getStationSuggestions(destination));
+                                        }}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setDestination(value);
+                                            setDestinationSuggestions(getStationSuggestions(value));
+                                            setDestinationActiveIndex(-1);
+                                            setActiveSuggestion("destination");
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "ArrowDown" && destinationSuggestions.length) {
+                                                e.preventDefault();
+                                                setDestinationActiveIndex((index) => (index + 1) % destinationSuggestions.length);
+                                            } else if (e.key === "ArrowUp" && destinationSuggestions.length) {
+                                                e.preventDefault();
+                                                setDestinationActiveIndex((index) => index <= 0 ? destinationSuggestions.length - 1 : index - 1);
+                                            } else if (e.key === "Enter") {
+                                                if (activeSuggestion === "destination" && destinationActiveIndex >= 0 && destinationSuggestions[destinationActiveIndex]) {
+                                                    e.preventDefault();
+                                                    chooseDestinationStation(destinationSuggestions[destinationActiveIndex]);
+                                                } else {
+                                                    setDestinationSuggestions([]);
+                                                    setActiveSuggestion("");
+                                                    searchTrains();
+                                                }
+                                            } else if (e.key === "Escape") {
+                                                setDestinationSuggestions([]);
+                                                setActiveSuggestion("");
+                                            }
+                                        }}
+                                    />
+
+                                    {activeSuggestion === "destination" && destinationSuggestions.length > 0 && (
+                                        <div className="station-suggestions" id="destination-station-suggestions" role="listbox">
+                                            {destinationSuggestions.map((station, index) => (
+                                                <button
+                                                    type="button"
+                                                    className={`station-suggestion ${index === destinationActiveIndex ? "active" : ""}`}
+                                                    key={station}
+                                                    role="option"
+                                                    aria-selected={index === destinationActiveIndex}
+                                                    onMouseDown={(e) => e.preventDefault()}
+                                                    onClick={() => chooseDestinationStation(station)}
+                                                >
+                                                    <span aria-hidden="true" style={{ marginRight: 9 }}>📍</span>{station}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <button

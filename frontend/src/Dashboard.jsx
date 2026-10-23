@@ -27,10 +27,10 @@ function Dashboard() {
             const [bookingResponse, notificationResponse] =
                 await Promise.all([
                     axios.get(
-                        `http://localhost:5000/api/bookings/user/${user.id}`
+                        `${import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com"}/api/bookings/user/${user.id}`
                     ),
                     axios.get(
-                        `http://localhost:5000/api/notifications/user/${user.id}`
+                        `${import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com"}/api/notifications/user/${user.id}`
                     ),
                 ]);
 
@@ -123,7 +123,7 @@ function Dashboard() {
 
         fetchDashboardData();
 
-        const socket = io("http://localhost:5000");
+        const socket = io(import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com");
 
         socket.on("bookingUpdated", (data) => {
             if (

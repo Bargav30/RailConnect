@@ -16,7 +16,7 @@ function Notifications() {
     const fetchNotifications = async () => {
         try {
             const response = await axios.get(
-                `http://localhost:5000/api/notifications/user/${user.id}`
+                `${import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com"}/api/notifications/user/${user.id}`
             );
 
             setNotifications(response.data);
@@ -31,7 +31,7 @@ function Notifications() {
     useEffect(() => {
         fetchNotifications();
 
-        const socket = io("http://localhost:5000");
+        const socket = io(import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com");
 
         socket.on("notificationCreated", (notification) => {
             if (String(notification.userId) === String(user.id)) {
@@ -52,7 +52,7 @@ function Notifications() {
 
         try {
             await axios.patch(
-                `http://localhost:5000/api/notifications/${id}/read`
+                `${import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com"}/api/notifications/${id}/read`
             );
 
             setNotifications((currentNotifications) =>

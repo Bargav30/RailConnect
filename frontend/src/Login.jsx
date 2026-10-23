@@ -1,6 +1,10 @@
+
 import { useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
+
+const API_URL = import.meta.env.VITE_API_URL || "https://railconnect-6xgl.onrender.com";
 
 function Login() {
     const [email, setEmail] = useState("");
@@ -8,6 +12,7 @@ function Login() {
     const [message, setMessage] = useState("");
     const [messageType, setMessageType] = useState("");
     const [loggingIn, setLoggingIn] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -18,7 +23,7 @@ function Login() {
 
         try {
             const response = await axios.post(
-                "http://localhost:5000/api/auth/login",
+                `${API_URL}/api/auth/login`,
                 {
                     email,
                     password,
@@ -44,11 +49,11 @@ function Login() {
                 }
             }, 650);
         } catch (error) {
-            console.error(error);
+            console.error("Login error:", error);
 
             setMessage(
                 error.response?.data?.message ||
-                    "Login failed. Please check your email and password."
+                "Login failed. Please check your email and password."
             );
             setMessageType("error");
             setLoggingIn(false);
@@ -69,22 +74,13 @@ function Login() {
                         padding: 32px 20px;
                         box-sizing: border-box;
                         color: #172033;
-                        font-family:
-                            Inter,
-                            -apple-system,
-                            BlinkMacSystemFont,
-                            "Segoe UI",
-                            sans-serif;
+                        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
                     }
 
                     .login-wrapper {
                         width: 100%;
                         max-width: 410px;
                     }
-
-                    /* =========================
-                       BRAND
-                    ========================= */
 
                     .login-brand {
                         display: flex;
@@ -129,18 +125,12 @@ function Login() {
                         text-align: center;
                     }
 
-                    /* =========================
-                       CARD
-                    ========================= */
-
                     .login-card {
                         background: #ffffff;
                         border: 1px solid #dfe5ea;
                         border-radius: 10px;
                         padding: 28px;
-                        box-shadow:
-                            0 6px 20px
-                            rgba(16, 24, 40, 0.045);
+                        box-shadow: 0 6px 20px rgba(16, 24, 40, 0.045);
                     }
 
                     .login-heading {
@@ -157,10 +147,6 @@ function Login() {
                         font-size: 13px;
                         line-height: 1.5;
                     }
-
-                    /* =========================
-                       FORM
-                    ========================= */
 
                     .login-field {
                         margin-bottom: 17px;
@@ -185,9 +171,7 @@ function Login() {
                         color: #172033;
                         font-size: 13px;
                         outline: none;
-                        transition:
-                            border-color 0.16s ease,
-                            box-shadow 0.16s ease;
+                        transition: border-color 0.16s ease, box-shadow 0.16s ease;
                     }
 
                     .login-input::placeholder {
@@ -196,9 +180,42 @@ function Login() {
 
                     .login-input:focus {
                         border-color: #1478bd;
-                        box-shadow:
-                            0 0 0 3px
-                            rgba(20, 120, 189, 0.09);
+                        box-shadow: 0 0 0 3px rgba(20, 120, 189, 0.09);
+                    }
+
+                    /* Password visibility toggle */
+                    .password-wrapper {
+                        position: relative;
+                        width: 100%;
+                    }
+
+                    .password-wrapper .login-input {
+                        padding-right: 44px;
+                    }
+
+                    .password-toggle {
+                        position: absolute;
+                        top: 50%;
+                        right: 11px;
+                        transform: translateY(-50%);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 4px;
+                        border: none;
+                        background: transparent;
+                        color: #667085;
+                        cursor: pointer;
+                    }
+
+                    .password-toggle:hover {
+                        color: #1478bd;
+                    }
+
+                    .password-toggle:focus-visible {
+                        outline: 2px solid #1478bd;
+                        outline-offset: 2px;
+                        border-radius: 4px;
                     }
 
                     .login-submit {
@@ -212,9 +229,7 @@ function Login() {
                         font-size: 13px;
                         font-weight: 650;
                         cursor: pointer;
-                        transition:
-                            background 0.16s ease,
-                            border-color 0.16s ease;
+                        transition: background 0.16s ease, border-color 0.16s ease;
                     }
 
                     .login-submit:hover {
@@ -273,10 +288,6 @@ function Login() {
                         color: #ffffff;
                     }
 
-                    /* =========================
-                       REGISTER LINK
-                    ========================= */
-
                     .login-footer {
                         margin-top: 21px;
                         padding-top: 18px;
@@ -295,10 +306,6 @@ function Login() {
                     .login-register-link:hover {
                         text-decoration: underline;
                     }
-
-                    /* =========================
-                       RESPONSIVE
-                    ========================= */
 
                     @media (max-width: 480px) {
                         .login-page {
@@ -319,10 +326,7 @@ function Login() {
             <div className="login-wrapper">
                 <div className="login-brand">
                     <div className="login-brand-mark">
-                        <svg
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                        >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M5 4h14v10a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V4Z" />
                             <path d="M8 20l2-3" />
                             <path d="M16 20l-2-3" />
@@ -332,9 +336,7 @@ function Login() {
                         </svg>
                     </div>
 
-                    <h1 className="login-brand-name">
-                        RailConnect
-                    </h1>
+                    <h1 className="login-brand-name">RailConnect</h1>
 
                     <p className="login-brand-description">
                         Smart Railway Passenger Management
@@ -342,13 +344,10 @@ function Login() {
                 </div>
 
                 <div className="login-card">
-                    <h2 className="login-heading">
-                        Welcome back
-                    </h2>
+                    <h2 className="login-heading">Welcome back</h2>
 
                     <p className="login-subheading">
-                        Sign in to continue to your RailConnect
-                        account.
+                        Sign in to continue to your RailConnect account.
                     </p>
 
                     <form onSubmit={handleLogin}>
@@ -365,10 +364,7 @@ function Login() {
                         )}
 
                         <div className="login-field">
-                            <label
-                                className="login-label"
-                                htmlFor="email"
-                            >
+                            <label className="login-label" htmlFor="email">
                                 Email address
                             </label>
 
@@ -378,32 +374,49 @@ function Login() {
                                 type="email"
                                 placeholder="Enter your email"
                                 value={email}
-                                onChange={(e) =>
-                                    setEmail(e.target.value)
-                                }
+                                onChange={(e) => setEmail(e.target.value)}
+                                autoComplete="email"
                                 required
                             />
                         </div>
 
                         <div className="login-field">
-                            <label
-                                className="login-label"
-                                htmlFor="password"
-                            >
+                            <label className="login-label" htmlFor="password">
                                 Password
                             </label>
 
-                            <input
-                                className="login-input"
-                                id="password"
-                                type="password"
-                                placeholder="Enter your password"
-                                value={password}
-                                onChange={(e) =>
-                                    setPassword(e.target.value)
-                                }
-                                required
-                            />
+                            <div className="password-wrapper">
+                                <input
+                                    className="login-input"
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Enter your password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    autoComplete="current-password"
+                                    required
+                                />
+
+                                <button
+                                    className="password-toggle"
+                                    type="button"
+                                    onClick={() =>
+                                        setShowPassword((previous) => !previous)
+                                    }
+                                    aria-label={
+                                        showPassword ? "Hide password" : "Show password"
+                                    }
+                                    title={
+                                        showPassword ? "Hide password" : "Show password"
+                                    }
+                                >
+                                    {showPassword ? (
+                                        <EyeOff size={19} />
+                                    ) : (
+                                        <Eye size={19} />
+                                    )}
+                                </button>
+                            </div>
                         </div>
 
                         <button
@@ -417,10 +430,7 @@ function Login() {
 
                     <div className="login-footer">
                         Don't have an account?{" "}
-                        <Link
-                            className="login-register-link"
-                            to="/register"
-                        >
+                        <Link className="login-register-link" to="/register">
                             Create an account
                         </Link>
                     </div>
@@ -431,3 +441,4 @@ function Login() {
 }
 
 export default Login;
+
